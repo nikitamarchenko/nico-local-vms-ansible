@@ -1,0 +1,7 @@
+---
+vm_cloud_init: ./roles/vm/files/cloud-init-{{ inventory_hostname }}.iso
+vm_cloud_init_user_data: ./roles/vm/files/user-data-{{ inventory_hostname }}.yaml
+vm_cloud_init_user_data_template: ./roles/vm/files/user-data.yaml
+vm_cloud_init_meta_data: ./roles/vm/files/meta-data-{{ inventory_hostname }}.yaml
+vm_cloud_init_meta_data_template: ./roles/vm/files/meta-data.yaml
+vm_image: ./roles/vm/files/{{ inventory_hostname }}.qcow2

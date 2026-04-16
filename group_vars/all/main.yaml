@@ -1,0 +1,30 @@
+ansible_remote_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
+ansible_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
+ansible_python_interpreter: /usr/bin/python3
+ansible_become: true
+
+image: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+image_local_path: "${HOME}/downloads/{{ image | basename }}"
+image_size: 10G
+
+# image: https://images.linuxcontainers.org/images/ubuntu/noble/amd64/cloud/20260330_07:42/disk.qcow2
+# image_local_path: "${HOME}/downloads/noble-server-linuxcontainers-amd64.qcow2"
+# image_create_qcow2: false
+# image_size: 10G
+
+apt_upgrade: true
+apt_update_cache: true
+
+ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDcDyciz7DHExmUNhD3gPrV0Fjg86OR+lBwCfWAXLlrB nm@nm-X1G2-linux"
+
+admin_users:
+  - username: nm
+    sudo: true
+    shell: '/usr/bin/zsh'
+    ssh_key:
+      - "{{ ssh_key }}"
+  - username: root
+    sudo: true
+    shell: '/usr/bin/zsh'
+    ssh_key:
+      - "{{ ssh_key }}"

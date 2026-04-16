@@ -1,0 +1,5 @@
+*.qcow
+*.qcow2
+*.iso
+.env
+.envrc

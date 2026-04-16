@@ -1,0 +1,36 @@
+---
+
+- name: Install .dotfiles
+  vars:
+    ansible_connection: local
+    ansible_become: false
+  changed_when: true
+  ansible.builtin.command:
+    argv:
+      - "/bin/bash"
+      - "${HOME}/.dotfiles/bootstrap.sh"
+      - "{{ ansible_host }}"
+
+- name: .zshrc file
+  ansible.builtin.copy:
+    dest: "/home/{{ item.username }}/.zshenv"
+    mode: "0644"
+    owner: "{{ item.username }}"
+    group: "{{ item.username }}"
+    content: |
+      # path in backwards order
+      typeset -U path PATH
+      path=(~/go/bin $path)
+      path=(~/.local/bin $path)
+      export PATH
+      # cargo
+      source "$HOME/.cargo/env"
+      export EDITOR=micro
+      export ZOXIDE_CMD_OVERRIDE=j
+  loop: "{{ admin_users }}"
+
+- name: Copy htoprc
+  ansible.builtin.copy:
+    dest: "/etc/htoprc"
+    src: htoprc
+    mode: "0644"

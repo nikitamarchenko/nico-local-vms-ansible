@@ -1,0 +1,42 @@
+---
+- name: Install packages
+  ansible.builtin.apt:
+    name: "zsh"
+    state: present
+
+- name: Create admin users
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    state: present
+    shell: "{{ item.shell }}"
+    groups: "{{ 'sudo' if item.sudo | default(false) else omit }}"
+    append: true
+    create_home: true
+  loop: "{{ admin_users }}"
+
+- name: Create .ssh
+  ansible.builtin.file:
+    path: "/home/{{ item.username }}/.ssh"
+    state: directory
+    owner: "{{ item.username }}"
+    group: "{{ item.username }}"
+    mode: "0700"
+  loop: "{{ admin_users }}"
+
+- name: Install authorized keys
+  ansible.posix.authorized_key:
+    user: "{{ item.0.username }}"
+    key: "{{ item.1 }}"
+    state: present
+  loop: "{{ admin_users | subelements('ssh_key') }}"
+
+- name: Allow passwordless sudo for admin users
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-{{ item.username }}"
+    content: "{{ item.username }} ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "/usr/sbin/visudo -cf %s"
+  loop: "{{ admin_users }}"
+  when: item.sudo | default(false)

@@ -1,0 +1,8 @@
+---
+- name: Build vms
+  hosts: all
+  gather_facts: false
+  roles:
+    - vm
+    - apt
+    - user

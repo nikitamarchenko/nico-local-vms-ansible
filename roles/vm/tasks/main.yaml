@@ -1,0 +1,104 @@
+---
+# https://arianfm.medium.com/create-virtual-machine-with-cloud-image-and-cloud-init-config-using-qemu-kvm-8080ee6e7f05
+
+- name: Local block
+  vars:
+    ansible_connection: local
+    ansible_become: false
+  block:
+    - name: Get local image stat
+      ansible.builtin.stat:
+        path: "{{ image_local_path }}"
+      register: vm_image_local_stat
+
+    - name: Download image
+      ansible.builtin.get_url:
+        url: "{{ image }}"
+        mode: "0644"
+        dest: "{{ image_local_path }}"
+      when: "not vm_image_local_stat.stat.exists"
+
+    - name: Create user data
+      ansible.builtin.template:
+        src: "{{ vm_cloud_init_user_data_template }}"
+        dest: "{{ vm_cloud_init_user_data }}"
+        mode: "0644"
+
+    - name: Create user data
+      ansible.builtin.template:
+        src: "{{ vm_cloud_init_meta_data_template }}"
+        dest: "{{ vm_cloud_init_meta_data }}"
+        mode: "0644"
+
+    - name: Remove VM
+      community.libvirt.virt_install:
+        name: "{{ ansible_host }}"
+        state: absent
+
+    - name: Remove old files
+      ansible.builtin.file:
+        state: absent
+        path: "{{ item }}"
+      loop:
+        - "{{ vm_cloud_init }}"
+        - "{{ vm_image }}"
+
+    - name: Build iso
+      ansible.builtin.command:
+        argv:
+          - "cloud-localds"
+          - "{{ vm_cloud_init }}"
+          - "{{ vm_cloud_init_user_data }}"
+          - "{{ vm_cloud_init_meta_data }}"
+      changed_when: true
+
+    - name: Create image
+      ansible.builtin.command:
+        cmd: "qemu-img create -f qcow2 -o backing_file={{ image_local_path }},backing_fmt=qcow2 {{ vm_image }}"
+      changed_when: true
+
+    - name: Resize image
+      ansible.builtin.command:
+        cmd: "qemu-img resize -f qcow2 {{ vm_image }} {{ image_size }}"
+      changed_when: true
+
+    - name: Install wm
+      community.libvirt.virt_install:
+        name: "{{ inventory_hostname }}"
+        memory: 16384
+        vcpus: 8
+        cdrom: "{{ vm_cloud_init }}"
+        disks:
+          - path: "{{ vm_image }}"
+        osinfo:
+          name: ubuntu22.04
+        import: true
+        networks:
+          - network: default
+
+    - name: Remove keys
+      ansible.builtin.command: ssh-keygen -R "{{ inventory_hostname }}"
+      changed_when: true
+      failed_when: false
+
+    - name: Wait for port 22 to be ready
+      ansible.builtin.wait_for:
+        port: 22
+        host: "{{ ansible_ssh_host }}"
+        search_regex: OpenSSH
+        delay: 1
+
+    - name: Add keys to ~/.ssh/known_hosts
+      ansible.builtin.shell: "ssh-keyscan -H {{ ansible_ssh_host }} >> ~/.ssh/known_hosts"
+      changed_when: true
+
+- name: Reset connection
+  ansible.builtin.meta: reset_connection
+
+- name: Wait for cloud-init
+  vars:
+    ansible_connection: ssh
+  ansible.builtin.command: cloud-init status --wait
+  register: vm_cloud_init_status_result
+  changed_when: false
+  failed_when: vm_cloud_init_status_result.rc != 2

@@ -1,0 +1,19 @@
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: apt_update_cache
+
+- name: Install packages
+  ansible.builtin.apt:
+    name: "nala"
+    state: present
+
+- name: Upgrade all packages
+  ansible.builtin.command: "nala upgrade -y"
+  when: apt_update_cache
+  changed_when: true
+
+# - name: Upgrade all packages
+#   ansible.builtin.apt:
+#     upgrade: dist
+#   when: apt_upgrade
