@@ -3,3 +3,5 @@
 *.iso
 .env
 .envrc
+roles/vm/files/meta-data-*.yaml
+roles/vm/files/user-data-*.yaml

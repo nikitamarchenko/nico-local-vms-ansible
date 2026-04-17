@@ -1,0 +1,14 @@
+#cloud-config
+hostname: "{{ ansible_host }}"
+manage_etc_hosts: true
+users:
+  - name: ubuntu
+    ssh-authorized-keys:
+      - "{{ ssh_key }}"
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    groups: sudo
+    shell: /bin/bash
+package_update: false
+packages:
+runcmd:
+  - systemctl restart systemd-networkd.service

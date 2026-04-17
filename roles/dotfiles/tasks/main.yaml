@@ -9,7 +9,8 @@
     argv:
       - "/bin/bash"
       - "${HOME}/.dotfiles/bootstrap.sh"
-      - "{{ ansible_host }}"
+      - "{{ item.username }}@{{ ansible_host }}"
+  loop: "{{ admin_users }}"
 
 - name: .zshrc file
   ansible.builtin.copy:

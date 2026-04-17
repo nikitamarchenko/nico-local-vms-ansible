@@ -5,6 +5,7 @@
   vars:
     ansible_connection: local
     ansible_become: false
+    ansible_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
   block:
     - name: Get local image stat
       ansible.builtin.stat:
@@ -98,6 +99,7 @@
 - name: Wait for cloud-init
   vars:
     ansible_connection: ssh
+    ansible_user: ubuntu
   ansible.builtin.command: cloud-init status --wait
   register: vm_cloud_init_status_result
   changed_when: false
