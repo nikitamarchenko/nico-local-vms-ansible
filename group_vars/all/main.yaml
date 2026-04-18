@@ -1,5 +1,6 @@
-ansible_remote_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
-ansible_user: ubuntu
+ansible_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
+ansible_remote_user: ubuntu
+ansible_ssh_user: ubuntu
 ansible_python_interpreter: /usr/bin/python3
 ansible_become: true
 
@@ -18,13 +19,33 @@ apt_update_cache: true
 ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDcDyciz7DHExmUNhD3gPrV0Fjg86OR+lBwCfWAXLlrB nm@nm-X1G2-linux"
 
 admin_users:
-  - username: nm
+  - username: "{{ lookup('ansible.builtin.env', 'USER') }}"
     sudo: true
-    shell: '/usr/bin/zsh'
+    shell: "/usr/bin/zsh"
     ssh_key:
       - "{{ ssh_key }}"
   - username: root
     sudo: true
-    shell: '/usr/bin/zsh'
+    shell: "/usr/bin/zsh"
     ssh_key:
       - "{{ ssh_key }}"
+
+libvirt_bridge:
+  name: nico-0
+  domain: lab
+  br_name: virbr-nico-0
+  ip:
+    address: 192.168.124.1
+    netmask: 255.255.255.0
+    cidr: 192.168.124.1/24
+  dhcp:
+    start: 192.168.124.3
+    end: 192.168.124.254
+  route:
+    address: 172.30.0.0
+    prefix: 24
+    gateway: 192.168.124.1
+
+ips:
+  buildvm: 192.168.124.10
+  msvm: 192.168.124.11

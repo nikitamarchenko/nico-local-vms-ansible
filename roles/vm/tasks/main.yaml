@@ -1,11 +1,11 @@
 ---
 # https://arianfm.medium.com/create-virtual-machine-with-cloud-image-and-cloud-init-config-using-qemu-kvm-8080ee6e7f05
 
+
 - name: Local block
   vars:
     ansible_connection: local
     ansible_become: false
-    ansible_user: "{{ lookup('ansible.builtin.env', 'USER') }}"
   block:
     - name: Get local image stat
       ansible.builtin.stat:
@@ -36,6 +36,59 @@
         name: "{{ ansible_host }}"
         state: absent
 
+    - name: Configure systemd-network {{ libvirt_bridge.name }}
+      become: true
+      become_method: ansible.builtin.sudo
+      become_user: root
+      register: vm_systemd_network_result
+      ignore_errors: true
+      ansible.builtin.copy:
+        dest: /etc/systemd/network/10-{{ libvirt_bridge.br_name }}.network
+        mode: "0644"
+        owner: "root"
+        group: "root"
+        content: |
+          [Match]
+          Name={{ libvirt_bridge.br_name }}
+
+          [Network]
+          DNS={{ libvirt_bridge.ip.address }}
+          Domains=~{{ libvirt_bridge.domain }}
+          DNSOverTLS=no
+          KeepConfiguration=yes
+          DNSSEC=no
+
+          [Route]
+          Destination={{ libvirt_bridge.ip.cidr }}
+          Scope=link
+          Table=main
+          Metric=100
+
+    - name: Check sudo password
+      ansible.builtin.fail:
+        msg: "sudo password required use playbook with --ask-become-pass"
+      when: vm_systemd_network_result.msg == "Destination /etc/systemd/network not writable"
+
+
+    - name: Define a new network
+      run_once: true
+      community.libvirt.virt_net:
+        state: absent
+        name: "{{ libvirt_bridge.name }}"
+
+    - name: Define a new network
+      run_once: true
+      community.libvirt.virt_net:
+        command: define
+        name: "{{ libvirt_bridge.name }}"
+        xml: "{{ lookup('ansible.builtin.template', 'bridge.xml.j2') }}"
+
+    - name: Define a new network
+      run_once: true
+      community.libvirt.virt_net:
+        command: start
+        name: "{{ libvirt_bridge.name }}"
+
     - name: Remove old files
       ansible.builtin.file:
         state: absent
@@ -55,7 +108,8 @@
 
     - name: Create image
       ansible.builtin.command:
-        cmd: "qemu-img create -f qcow2 -o backing_file={{ image_local_path }},backing_fmt=qcow2 {{ vm_image }}"
+        cmd: "qemu-img create -f qcow2 -o backing_file={{ image_local_path
+          }},backing_fmt=qcow2 {{ vm_image }}"
       changed_when: true
 
     - name: Resize image
@@ -75,7 +129,7 @@
           name: ubuntu22.04
         import: true
         networks:
-          - network: default
+          - network: "{{ libvirt_bridge.name }}"
 
     - name: Remove keys
       ansible.builtin.command: ssh-keygen -R "{{ inventory_hostname }}"
@@ -85,7 +139,7 @@
     - name: Wait for port 22 to be ready
       ansible.builtin.wait_for:
         port: 22
-        host: "{{ ansible_ssh_host }}"
+        host: "{{ ip }}"
         search_regex: OpenSSH
         delay: 1
 
@@ -93,13 +147,11 @@
       ansible.builtin.shell: "ssh-keyscan -H {{ ansible_ssh_host }} >> ~/.ssh/known_hosts"
       changed_when: true
 
-- name: Reset connection
-  ansible.builtin.meta: reset_connection
+- name: Setup facts
+  ansible.builtin.setup: {}
 
 - name: Wait for cloud-init
-  vars:
-    ansible_connection: ssh
-    ansible_user: ubuntu
+  become: false
   ansible.builtin.command: cloud-init status --wait
   register: vm_cloud_init_status_result
   changed_when: false

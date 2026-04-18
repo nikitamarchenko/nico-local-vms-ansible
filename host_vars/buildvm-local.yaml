@@ -1,1 +1,2 @@
 image_size: 30G
+ip: "{{ ips.buildvm }}"

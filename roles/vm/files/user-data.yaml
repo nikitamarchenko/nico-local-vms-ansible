@@ -8,6 +8,12 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     groups: sudo
     shell: /bin/bash
+
+chpasswd:
+  expire: false
+  users:
+  - {name: ubuntu, password: ubuntu, type: text}
+
 package_update: false
 packages:
 runcmd:

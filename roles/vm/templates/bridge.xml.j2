@@ -1,0 +1,28 @@
+<network>
+  <name>{{ libvirt_bridge.name }}</name>
+  <forward mode="nat">
+    <nat ipv6='no'>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="{{ libvirt_bridge.br_name }}" stp="on" delay="0"/>
+  <domain name="{{ libvirt_bridge.domain }}"/>
+  <route address="{{ libvirt_bridge.route.address }}" 
+         prefix="{{ libvirt_bridge.route.prefix }}" 
+         gateway="{{ libvirt_bridge.route.gateway }}"/> 
+  <ip address="{{ libvirt_bridge.ip.address }}" 
+      netmask="{{ libvirt_bridge.ip.netmask }}">
+    <dhcp>
+      <range start="{{ libvirt_bridge.dhcp.start }}" 
+             end="{{ libvirt_bridge.dhcp.end }}"/>
+      <host name="buildvm-local" ip="{{ ips.buildvm }}"/>
+      <host name="msvm-local" ip="{{ ips.msvm }}"/>
+    </dhcp>
+  </ip>
+  <dns>
+    <host ip="{{ ips.buildvm }}">
+      <hostname>buildvm-local</hostname>
+      <hostname>registry</hostname>
+    </host>
+  </dns>
+</network>

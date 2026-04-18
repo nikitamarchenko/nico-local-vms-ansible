@@ -1,1 +1,2 @@
 image_size: 100G
+ip: "{{ ips.msvm }}"
