@@ -37,9 +37,10 @@
         state: absent
 
     - name: Configure systemd-network {{ libvirt_bridge.name }}
+      vars:
+        ansible_become: true
+      run_once: true
       become: true
-      become_method: ansible.builtin.sudo
-      become_user: root
       register: vm_systemd_network_result
       ignore_errors: true
       ansible.builtin.copy:
@@ -63,12 +64,6 @@
           Scope=link
           Table=main
           Metric=100
-
-    - name: Check sudo password
-      ansible.builtin.fail:
-        msg: "sudo password required use playbook with --ask-become-pass"
-      when: vm_systemd_network_result.msg == "Destination /etc/systemd/network not writable"
-
 
     - name: Define a new network
       run_once: true
